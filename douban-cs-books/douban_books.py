@@ -1,25 +1,33 @@
+from unicodedata import category
 import requests
 from lxml import etree
+import time
 
-def get_books(url, maxPageCount):
-    start = 0
+typeDic = {'S': 'by_score', 'T': 'by_default', 'R': 'by_publication_date'}
+
+def get_sorttype(type):
+    return typeDic[type];
+
+def get_books(url, category, sort_type, max_page_count):
     headers = {
         'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:101.0) Gecko/20100101 Firefox/101.0', 
         #'Content-Type': 'text/html; charset=utf-8'
     }
 
-    with open('out/books.csv', 'w', encoding='utf-8') as file:
+    start = 0
+    with open('out/douban_top_' + category +'_books_' + get_sorttype(sort_type) + '.csv', 'w', encoding='utf-8') as file:
         file.write('No.,Name,Publication,Rate\n')
         startNum = 0
         itemNum = 0
-        for page_idx in range(1, maxPageCount):
+        for page_idx in range(1, max_page_count + 1):
             startNum = (page_idx - 1) * 20
-            param = "?start=" + str(startNum) + "&type=S"
+            param = "?start=" + str(startNum) + "&type=" + sort_type
+            time.sleep(2)
             r = requests.get(url + param, headers=headers);
             # r.encoding = r.apparent_encoding;
             html = etree.HTML(r.text)
             infos = html.xpath('//li[@class="subject-item"]//div[@class="info"]')
-            print("page_index=" + str(page_idx) + ", item.lenth=" + str(len(infos)) + ", url.param=" + param)
+            print("page_index=" + str(page_idx) + ", item.lenth=" + str(len(infos)) + ", category=" + category + ", url=" + (url+param))
             for item_idx, info in enumerate(infos):
                 title = info.xpath('h2/a/text()')[0].strip()
                 pub = info.xpath('div[@class="pub"]/text()')[0].strip()
@@ -31,7 +39,13 @@ def get_books(url, maxPageCount):
 
 
 if __name__ == "__main__":
-    get_books("https://book.douban.com/tag/%E7%BC%96%E7%A8%8B", 100)
+    csTagName = '%E7%BC%96%E7%A8%8B'   # 编程
+    get_books("https://book.douban.com/tag/" + csTagName, 'programming', 'S', 5)   # 分数排序
+    get_books("https://book.douban.com/tag/" + csTagName, 'programming', 'R', 5)   # 出版日期
+    get_books("https://book.douban.com/tag/" + csTagName, 'programming', 'T', 5)    # 综合排序
+    #
+    # get_books("https://book.douban.com/tag/" + '%E5%B0%8F%E8%AF%B4', 'novel', 'S', 10) 
+
 
 
 
